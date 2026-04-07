@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Management - Faculty Dashboard</title>
+  <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+  <style>
+    body {
+      background: #f8f9fa;
+      padding: 20px;
+    }
+    .management-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1001;
+    }
+    .excel-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    .excel-section h4 {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .excel-card {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 15px;
+      backdrop-filter: blur(10px);
+    }
+    .excel-card h6 {
+      margin-bottom: 15px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-excel {
+      background: white;
+      color: #667eea;
+      border: none;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .btn-excel:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .file-input-label {
+      display: block;
+      padding: 15px;
+      background: rgba(255,255,255,0.2);
+      border: 2px dashed rgba(255,255,255,0.5);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .file-input-label:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: white;
+    }
+    .file-input-wrapper input[type="file"] {
+      display: none;
+    }
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+    .feature-list li {
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .feature-list li:before {
+      content: "✓";
+      font-weight: bold;
+      color: #20c997;
+    }
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('faculty_dashboard') }}" class="btn btn-outline-primary back-btn">
+    ← Back to Dashboard
+  </a>
+
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="text-success">Student Management</h2>
+      <p class="text-muted">Manage student data and view system information</p>
+    </div>
+
+    <!-- EXCEL DATASET MANAGEMENT SECTION -->
+    <div class="excel-section">
+      <h4>
+        <i class="fas fa-file-excel" style="font-size: 1.8rem;"></i>
+        Excel Dataset Management
+      </h4>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="excel-card">
+            <h6>
+              <i class="fas fa-download"></i>
+              Export Students to Excel
+            </h6>
+            <p class="small mb-3">Download the complete student dataset as an Excel file with all information formatted professionally.</p>
+            <a href="{{ url_for('export_students_excel') }}" class="btn btn-excel w-100">
+              <i class="fas fa-download"></i> Download Excel File
+            </a>
+            <small class="d-block mt-2" style="opacity: 0.9;">Creates a formatted Excel file with student details</small>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="excel-card">
+            <h6>
+              <i class="fas fa-upload"></i>
+              Import / Update from Excel
+            </h6>
+            <p class="small mb-3">Upload an Excel file to sync student data. Students removed from Excel will be deleted from the system.</p>
+            <form method="POST" action="{{ url_for('import_students_excel') }}" enctype="multipart/form-data" id="importForm">
+              <div class="file-input-wrapper">
+                <label for="excelFile" class="file-input-label">
+                  <i class="fas fa-file-upload"></i>
+                  <div>Click to select or drag & drop Excel file</div>
+                  <small style="opacity: 0.8;">(.xlsx files only)</small>
+                </label>
+                <input type="file" id="excelFile" name="excel_file" accept=".xlsx" required onchange="updateFileName(this)">
+                <small id="fileName" class="d-block mt-2" style="opacity: 0.9;"></small>
+              </div>
+              <button type="submit" class="btn btn-excel w-100 mt-2">
+                <i class="fas fa-upload"></i> Import & Sync
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="excel-card mt-3">
+        <h6><i class="fas fa-lightbulb"></i> How to use Excel Dataset Management</h6>
+        <ul class="feature-list small">
+          <li>Download the Excel file from your system</li>
+          <li>Edit student data directly in Excel (names, departments, room numbers, etc.)</li>
+          <li>Delete rows to remove students from the system</li>
+          <li>Add new rows to add new students</li>
+          <li>Upload the updated Excel file to sync with the system</li>
+          <li>Students not in the Excel file will be automatically removed</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="management-card p-4">
+          <h5 class="text-primary mb-3">📊 System Overview</h5>
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border rounded p-3">
+                <h4 class="text-success">{{ total_students or 0 }}</h4>
+                <small class="text-muted">Total Students</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded p-3">
+                <h4 class="text-info">{{ students_with_photos or 0 }}</h4>
+                <small class="text-muted">With Photos</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="management-card p-4">
+          <h5 class="text-primary mb-3">🔧 Quick Actions</h5>
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('view_students') }}" class="btn btn-outline-primary">View All Students</a>
+            <a href="{{ url_for('faculty_dashboard') }}" class="btn btn-outline-success">Upload Videos</a>
+            <a href="{{ url_for('build_gallery') }}" class="btn btn-outline-info">Build Gait Gallery</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="management-card p-4">
+          <h5 class="text-primary mb-3">ℹ️ Important Notes</h5>
+          <div class="alert alert-info">
+            <h6>Student Photo Management</h6>
+            <ul class="mb-0">
+              <li><strong>Students upload their own photos</strong> through their dashboard</li>
+              <li>Photos are automatically organized by registration number</li>
+              <li>Front photo is required, left and right side photos are optional</li>
+              <li>Faculty can view all student photos and profiles</li>
+            </ul>
+          </div>
+          
+          <div class="alert alert-warning">
+            <h6>Video Analysis</h6>
+            <ul class="mb-0">
+              <li>Upload CCTV videos for face recognition analysis</li>
+              <li>System will automatically detect faces and match with student photos</li>
+              <li>Green boxes appear around detected faces with student information</li>
+              <li>Click on faces to view detailed student profiles</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/all.min.js') }}"></script>
+  <script>
+    function updateFileName(input) {
+      const fileName = input.files[0]?.name || '';
+      document.getElementById('fileName').textContent = fileName ? `Selected: ${fileName}` : '';
+    }
+
+    // Drag and drop functionality
+    const fileInput = document.getElementById('excelFile');
+    const fileLabel = document.querySelector('.file-input-label');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      fileLabel.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      fileLabel.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      fileLabel.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+      fileLabel.style.background = 'rgba(255,255,255,0.4)';
+      fileLabel.style.borderColor = 'white';
+    }
+
+    function unhighlight(e) {
+      fileLabel.style.background = 'rgba(255,255,255,0.2)';
+      fileLabel.style.borderColor = 'rgba(255,255,255,0.5)';
+    }
+
+    fileLabel.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      fileInput.files = files;
+      updateFileName(fileInput);
+    }
+  </script>
+</body>
+</html>

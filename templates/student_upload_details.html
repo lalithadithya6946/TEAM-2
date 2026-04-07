@@ -1,0 +1,68 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Update Details</title>
+  <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+</head>
+<body>
+  <div class="container my-4">
+    <h3 class="mb-4">Welcome, Student!</h3>
+    <div class="card mb-4">
+      <div class="card-header bg-success text-white">
+        <h4 class="mb-0">Student Registration</h4>
+      </div>
+      <div class="card-body">
+        <div class="mb-4">
+          <label class="form-label">Registration Number</label>
+          <div class="input-group">
+            <input type="text" id="reg_no" name="reg_no" class="form-control" placeholder="Enter Registration Number (e.g., 99220041142)" pattern="^99\d{9}$" title="Registration number must be 11 digits starting with 99" required>
+            <button type="button" class="btn btn-primary" onclick="fetchStudentDetails()">Load Details</button>
+          </div>
+        </div>
+
+        <form id="studentForm" method="POST" action="{{ url_for('update_student_details') }}" style="display: none;">
+          <input type="hidden" name="reg_no" id="form_reg_no">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input type="text" id="full_name" name="full_name" class="form-control" value="{{ student.name if student else '' }}" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Department <span class="text-danger">*</span></label>
+                <select id="department" name="department" class="form-control" required>
+                  <option value="">Select Department</option>
+                  <option value="CSE" {% if student and student.dept == 'CSE' %}selected{% endif %}>CSE</option>
+                  <option value="ECE" {% if student and student.dept == 'ECE' %}selected{% endif %}>ECE</option>
+                  <option value="ME" {% if student and student.dept == 'ME' %}selected{% endif %}>ME</option>
+                  <option value="EEE" {% if student and student.dept == 'EEE' %}selected{% endif %}>EEE</option>
+                  <option value="CIVIL" {% if student and student.dept == 'CIVIL' %}selected{% endif %}>CIVIL</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Room Number</label>
+                <input type="text" id="room_number" name="room_number" class="form-control" value="{{ student.room_no if student else '' }}" placeholder="e.g., A-101">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Father's Name</label>
+                <input type="text" id="fathers_name" name="fathers_name" class="form-control" value="{{ student.father_name if student else '' }}">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Father's Phone</label>
+                <input type="tel" id="fathers_phone" name="fathers_phone" class="form-control" value="{{ student.father_phone if student else '' }}" pattern="[0-9]{10}" title="Please enter a valid 10-digit phone number">
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center mt-3">
+            <button type="submit" class="btn btn-success">Save Changes</button>
+            <a class="btn btn-secondary" href="{{ url_for('student_dashboard') }}">Cancel</a>
+          </div>
+        </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Live Webcam</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+  <div class="container">
+    <span class="navbar-brand">Live Webcam</span>
+    <div class="d-flex gap-2">
+      <a class="btn btn-light btn-sm" href="{{ url_for('change_password') }}">Change Password</a>
+      <a class="btn btn-light btn-sm" href="{{ url_for('faculty_dashboard') }}">Back</a>
+    </div>
+  </div>
+  </nav>
+
+<div class="container my-4">
+  <div class="card p-2">
+    <div style="position: relative; display: inline-block;">
+      <img id="webcam" src="{{ url_for('webcam_feed') }}" class="img-fluid" alt="Webcam stream">
+      <canvas id="overlay" style="position:absolute; left:0; top:0;"></canvas>
+    </div>
+  </div>
+
+  <!-- Brightness Control Section -->
+  <div class="card mt-3 p-3" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+    <h6 class="mb-3">
+      <i class="fas fa-sun"></i> Brightness Control
+    </h6>
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted">
+            <i class="fas fa-moon"></i> Dark
+          </span>
+          <input type="range" id="brightnessSlider" min="-50" max="50" value="0" class="form-range" style="cursor: pointer;">
+          <span class="text-muted">
+            <i class="fas fa-sun"></i> Bright
+          </span>
+        </div>
+        <small class="text-muted d-block mt-2">Current: <strong id="brightnessValue">0</strong></small>
+      </div>
+      <div class="col-md-4">
+        <div class="brightness-bar" style="height: 30px; background: linear-gradient(to right, #333, #888, #fff); border-radius: 5px; position: relative;">
+          <div id="brightnessIndicator" style="position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; background: #28a745; transform: translateX(-50%); border-radius: 2px;"></div>
+        </div>
+        <small class="text-muted d-block mt-2" style="text-align: center;">Light Level</small>
+      </div>
+    </div>
+  </div>
+  
+  <div class="alert alert-info mt-3">
+    Make sure to allow camera access if prompted. Boxes and labels will render on the server.
+  </div>
+  <div id="enc-status" class="alert alert-warning mt-2" style="display:none">
+    Recognition: <span id="enc-text">Loading...</span>
+    <button id="reload-enc" class="btn btn-sm btn-outline-primary ms-2">Reload Encodings</button>
+  </div>
+</div>
+
+<script>
+  const img = document.getElementById('webcam');
+  const canvas = document.getElementById('overlay');
+  const ctx = canvas.getContext('2d');
+  const brightnessSlider = document.getElementById('brightnessSlider');
+  const brightnessValue = document.getElementById('brightnessValue');
+  const brightnessIndicator = document.getElementById('brightnessIndicator');
+  let boxes = [];
+
+  function resizeCanvas() {
+    canvas.width = img.clientWidth;
+    canvas.height = img.clientHeight;
+  }
+
+  function drawBoxes() {
+    if (!canvas.width || !canvas.height) return;
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.strokeStyle = '#00FF00';
+    ctx.lineWidth = 2;
+    ctx.font = '14px Arial';
+    ctx.fillStyle = 'rgba(0,255,0,0.2)';
+    for (const b of boxes) {
+      const x = b.x * canvas.width;
+      const y = b.y * canvas.height;
+      const w = b.w * canvas.width;
+      const h = b.h * canvas.height;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillRect(x, y, w, h);
+      const label = b.reg_no || 'UNKNOWN';
+      ctx.fillStyle = '#00FF00';
+      ctx.fillText(label, x + 4, y + 16);
+      ctx.fillStyle = 'rgba(0,255,0,0.2)';
+    }
+  }
+
+  function hitTest(x, y) {
+    const px = x / canvas.width;
+    const py = y / canvas.height;
+    for (const b of boxes) {
+      if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {
+        return b;
+      }
+    }
+    return null;
+  }
+
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const b = hitTest(x, y);
+    if (b && b.reg_no && b.reg_no !== 'UNKNOWN') {
+      window.location.href = `/student/${b.reg_no}`;
+    }
+  });
+
+  // Brightness Control Functions
+  function updateBrightnessIndicator() {
+    const value = parseInt(brightnessSlider.value);
+    const percent = ((value + 50) / 100) * 100;
+    brightnessIndicator.style.left = percent + '%';
+    brightnessValue.textContent = value;
+    
+    // Update color based on value
+    if (value < -20) {
+      brightnessIndicator.style.background = '#6c757d';
+    } else if (value > 20) {
+      brightnessIndicator.style.background = '#ffc107';
+    } else {
+      brightnessIndicator.style.background = '#28a745';
+    }
+  }
+
+  brightnessSlider.addEventListener('input', (e) => {
+    updateBrightnessIndicator();
+    const brightness = parseInt(e.target.value);
+    
+    // Send brightness value to server
+    fetch('/set_brightness', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ brightness: brightness })
+    })
+    .catch(err => console.error('Error setting brightness:', err));
+  });
+
+  function loadBrightness() {
+    fetch('/get_brightness')
+      .then(r => r.json())
+      .then(data => {
+        brightnessSlider.value = data.brightness;
+        updateBrightnessIndicator();
+      })
+      .catch(err => console.error('Error loading brightness:', err));
+  }
+
+  function poll() {
+    fetch(`/live_tracks?source=webcam`)
+      .then(r => r.json())
+      .then(data => { boxes = data || []; drawBoxes(); })
+      .catch(() => {});
+  }
+
+  function checkEncodings() {
+    fetch('/encoding_status')
+      .then(r => r.json())
+      .then(s => {
+        const el = document.getElementById('enc-status');
+        const txt = document.getElementById('enc-text');
+        if (s.loaded) {
+          el.className = 'alert alert-success mt-2';
+          txt.textContent = `Ready (${s.count})`;
+          el.style.display = 'block';
+        } else {
+          el.className = 'alert alert-warning mt-2';
+          txt.textContent = 'Loading...';
+          el.style.display = 'block';
+        }
+      }).catch(()=>{});
+  }
+
+  document.getElementById('reload-enc').addEventListener('click', () => {
+    fetch('/reload_encodings').then(()=>{ checkEncodings(); });
+  });
+
+  setInterval(checkEncodings, 2000);
+
+  img.addEventListener('load', () => { resizeCanvas(); drawBoxes(); });
+  window.addEventListener('resize', () => { resizeCanvas(); drawBoxes(); });
+  setInterval(poll, 300);
+
+  // Load initial brightness value
+  loadBrightness();
+</script>
+
+</body>
+</html>
+
+
